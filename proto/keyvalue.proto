@@ -1,0 +1,62 @@
+// proto/keyvalue.proto
+syntax = "proto3";
+
+package keyvalue;
+
+// El servicio define los métodos RPC
+service KeyValue {
+  // Almacena un par clave-valor
+  rpc Set(SetRequest) returns (SetResponse) {}
+
+  // Recupera el valor para una clave
+  rpc Get(GetRequest) returns (GetResponse) {}
+
+  // Recupera todos los valores cuyas claves comienzan con un prefijo
+  rpc GetPrefix(GetPrefixRequest) returns (GetPrefixResponse) {}
+
+  // Devuelve estadísticas internas del servidor
+  rpc Stat(StatRequest) returns (StatResponse) {}
+}
+
+// Mensajes para el método Set
+message SetRequest {
+  string key = 1;
+  bytes value = 2; // Usamos bytes para soportar cualquier tipo de dato
+}
+
+message SetResponse {
+  bool success = 1;
+}
+
+// Mensajes para el método Get
+message GetRequest {
+  string key = 1;
+}
+
+message GetResponse {
+  bool found = 1;
+  bytes value = 2;
+}
+
+// Mensajes para el método GetPrefix
+message GetPrefixRequest {
+  string prefix = 1;
+}
+
+message KeyValuePair {
+    string key = 1;
+    bytes value = 2;
+}
+
+message GetPrefixResponse {
+  repeated KeyValuePair pairs = 1;
+}
+
+// Mensajes para el método Stat
+message StatRequest {}
+
+message StatResponse {
+  int64 key_count = 1;
+  string server_start_time = 2;
+  int64 total_requests = 3;
+}
