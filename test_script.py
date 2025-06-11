@@ -98,8 +98,8 @@ def client_worker(client_id, port, workload_type, value_size, duration_sec):
 
     # Aumentar límites de tamaño de mensaje para gRPC
     grpc_options = [
-        ('grpc.max_send_message_length', 64 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 64 * 1024 * 1024),
+        ('grpc.max_send_message_length', 128 * 1024 * 1024),
+        ('grpc.max_receive_message_length', 128 * 1024 * 1024),
     ]
 
     with grpc.insecure_channel(address, options=grpc_options) as channel:
@@ -115,11 +115,16 @@ def client_worker(client_id, port, workload_type, value_size, duration_sec):
                 value = generate_random_value(value_size)
                 stub.Set(keyvalue_pb2.SetRequest(key=key, value=value))
             elif workload_type == 'mixed':
-                if random.random() < 0.5:
+                op = random.random()
+                if op < 0.4:
                     stub.Get(keyvalue_pb2.GetRequest(key=key))
-                else:
+                elif op < 0.8:
                     value = generate_random_value(value_size)
                     stub.Set(keyvalue_pb2.SetRequest(key=key, value=value))
+                else:
+                    # Aquí integramos el GetPrefix
+                    prefix = f"client{client_id}-key-"
+                    stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix=prefix))
 
             op_end_time = time.time()
             latencies.append((op_end_time - op_start_time) * 1000) # en ms
@@ -145,8 +150,8 @@ def run_latency_vs_size_test(port):
             # Pre-poblar datos para la prueba de lectura
             if w_type == 'read':
                 grpc_options = [
-                    ('grpc.max_send_message_length', 64 * 1024 * 1024),
-                    ('grpc.max_receive_message_length', 64 * 1024 * 1024),
+                    ('grpc.max_send_message_length', 128 * 1024 * 1024),
+                    ('grpc.max_receive_message_length', 128 * 1024 * 1024),
                 ]
                 with grpc.insecure_channel(f'localhost:{port}', options=grpc_options) as channel:
                     stub = keyvalue_pb2_grpc.KeyValueStub(channel)
@@ -270,8 +275,8 @@ def run_durability_and_restart_test(port):
 
     keys_written = set()
     with grpc.insecure_channel(f'localhost:{port}', options=[
-        ('grpc.max_send_message_length', 64 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 64 * 1024 * 1024),
+        ('grpc.max_send_message_length', 128 * 1024 * 1024),
+        ('grpc.max_receive_message_length', 128 * 1024 * 1024),
     ]) as channel:
         stub = keyvalue_pb2_grpc.KeyValueStub(channel)
         for i in range(num_keys_to_write):
@@ -295,8 +300,8 @@ def run_durability_and_restart_test(port):
 
     # Medir latencia "en frío" (justo después de reiniciar)
     with grpc.insecure_channel(f'localhost:{port}', options=[
-        ('grpc.max_send_message_length', 64 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 64 * 1024 * 1024),
+        ('grpc.max_send_message_length', 128 * 1024 * 1024),
+        ('grpc.max_receive_message_length', 128 * 1024 * 1024),
     ]) as channel:
         stub = keyvalue_pb2_grpc.KeyValueStub(channel)
         

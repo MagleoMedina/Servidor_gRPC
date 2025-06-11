@@ -10,7 +10,7 @@ def run_command(args):
     """Ejecuta un comando en el servidor."""
     address = f'localhost:{args.port}'
     # Set max message size to 32MB for both send and receive
-    max_msg_len = 32 * 1024 * 1024
+    max_msg_len = 128 * 1024 * 1024
     with grpc.insecure_channel(
         address,
         options=[
@@ -75,4 +75,3 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     run_command(args)
-

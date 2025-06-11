@@ -56,7 +56,7 @@ def serve(port):
     storage_instance = Storage()
     
     # Aumentar el tamaño máximo de mensaje a 32MB
-    max_msg_len = 32 * 1024 * 1024
+    max_msg_len = 128 * 1024 * 1024
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=32),
         options=[
