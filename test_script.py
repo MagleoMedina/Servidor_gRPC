@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import grpc
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from proto import keyvalue_pb2, keyvalue_pb2_grpc
 
@@ -60,6 +61,19 @@ def stop_server(process, graceful=True):
         process.kill()
 
     print("Servidor detenido.")
+    
+def print_server_stats(port):
+    with grpc.insecure_channel(f'localhost:{port}') as channel:
+        stub = keyvalue_pb2_grpc.KeyValueStub(channel)
+        response = stub.Stat(keyvalue_pb2.StatRequest())
+        print("\n--- ESTADÍSTICAS DEL SERVIDOR ---")
+        print(f"Hora de inicio: {response.server_start_time}")
+        print(f"Total claves: {response.key_count}")
+        print(f"Total operaciones: {response.total_requests}")
+        print(f"Total sets: {response.set_count}")
+        print(f"Total gets: {response.get_count}")
+        print(f"Total getPrefix: {response.getprefix_count}")
+        print("------------------------------")
 
 def cleanup_logs():
     """Elimina el archivo de log del servidor."""
@@ -147,7 +161,7 @@ def run_latency_vs_size_test(port):
             
             print(f"    Tamaño: {size/1024:.2f} KB -> Latencia media: {avg_latency:.2f} ms, p99: {p99_latency:.2f} ms")
             results.append([name, size, avg_latency, p99_latency])
-            
+            print_server_stats(port)
             stop_server(server_proc)
 
     # Guardar resultados en CSV
@@ -157,6 +171,23 @@ def run_latency_vs_size_test(port):
         writer.writerow(['workload', 'value_size_bytes', 'avg_latency_ms', 'p99_latency_ms'])
         writer.writerows(results)
     print(f"Resultados guardados en {csv_path}")
+    
+    # Graficar Latencia vs Tamaño de Valor
+    df = pd.read_csv(csv_path)
+
+    for workload in df['workload'].unique():
+        wdf = df[df['workload'] == workload]
+        plt.plot(wdf['value_size_bytes'] / 1024, wdf['avg_latency_ms'], label=workload)
+
+    plt.xlabel("Tamaño del valor (KB)")
+    plt.ylabel("Latencia Promedio (ms)")
+    plt.title("Latencia vs Tamaño del Valor")
+    plt.legend()
+    plt.grid(True)
+    plot_path = os.path.join(RESULTS_DIR, 'grafico_latencia_vs_tamaño.png')
+    plt.savefig(plot_path)
+    print(f"Gráfico guardado en {plot_path}")
+    plt.close()
 
 
 def run_scalability_test(port):
@@ -190,7 +221,7 @@ def run_scalability_test(port):
 
         print(f"    Clientes: {n_clients} -> Rendimiento: {throughput:.2f} ops/sec, Latencia media: {avg_latency:.2f} ms")
         results.append([n_clients, throughput, avg_latency])
-
+    print_server_stats(port)
     stop_server(server_proc)
 
     # Guardar resultados en CSV
@@ -252,6 +283,7 @@ def run_durability_and_restart_test(port):
                 print(f"    ... {i}/{num_keys_to_write} claves escritas")
 
     print("  Simulando fallo del servidor (kill -9)...")
+    print_server_stats(port)
     stop_server(server_proc, graceful=False)
 
     # --- Fase 2: Recuperación y validación ---
@@ -278,9 +310,9 @@ def run_durability_and_restart_test(port):
                 lost_keys += 1
         
         if lost_keys == 0:
-            print("  ✅ VALIDACIÓN DE DURABILIDAD: ¡CORRECTO! No se perdieron datos.")
+            print("VALIDACIÓN DE DURABILIDAD: CORRECTO, no se perdieron datos.")
         else:
-            print(f"  ❌ VALIDACIÓN DE DURABILIDAD: ¡FALLO! Se perdieron {lost_keys} de 100 claves de muestra.")
+            print(f"VALIDACIÓN DE DURABILIDAD: FALLO, se perdieron {lost_keys} de 100 claves de muestra.")
 
         # Latencia en frío vs caliente
         cold_latencies = []
@@ -297,7 +329,19 @@ def run_durability_and_restart_test(port):
 
         print(f"  Latencia de lectura 'en frío' (media): {np.mean(cold_latencies):.3f} ms")
         print(f"  Latencia de lectura 'en caliente' (media): {np.mean(hot_latencies):.3f} ms")
-    
+        
+    # Graficar Frío vs Caliente
+    labels = ['Frío', 'Caliente']
+    values = [np.mean(cold_latencies), np.mean(hot_latencies)]
+
+    plt.bar(labels, values, color=['orange', 'green'])
+    plt.ylabel('Latencia Promedio (ms)')
+    plt.title('Lectura en Frío vs Caliente')
+    plot_path = os.path.join(RESULTS_DIR, 'grafico_frio_vs_caliente.png')
+    plt.savefig(plot_path)
+    print(f"Gráfico guardado en {plot_path}")
+    plt.close()
+    print_server_stats(port)
     stop_server(server_proc)
 
 if __name__ == '__main__':
@@ -313,4 +357,3 @@ if __name__ == '__main__':
     run_durability_and_restart_test(args.port)
 
     print("\n--- Todas las pruebas han finalizado. Revisa la carpeta 'resultados' ---")
-

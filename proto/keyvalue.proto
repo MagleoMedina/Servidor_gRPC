@@ -59,4 +59,7 @@ message StatResponse {
   int64 key_count = 1;
   string server_start_time = 2;
   int64 total_requests = 3;
+  int64 set_count = 4;
+  int64 get_count = 5;
+  int64 getprefix_count = 6;
 }

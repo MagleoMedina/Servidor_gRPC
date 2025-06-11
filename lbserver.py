@@ -43,7 +43,10 @@ class KeyValueServicer(keyvalue_pb2_grpc.KeyValueServicer):
         return keyvalue_pb2.StatResponse(
             key_count=stats['key_count'],
             server_start_time=stats['start_time'],
-            total_requests=stats['total_requests']
+            total_requests=stats['total_requests'],
+            set_count=stats['set_count'],
+            get_count=stats['get_count'],
+            getprefix_count=stats['getprefix_count']
         )
 
 def serve(port):

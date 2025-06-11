@@ -28,6 +28,9 @@ class Storage:
         self._wal_file = None
         self._start_time = time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())
         self._total_requests = 0
+        self._set_count = 0
+        self._get_count = 0
+        self._getprefix_count = 0
 
         # Inicializa los bloqueos por bandas (striped locks)
         self._locks = [threading.Lock() for _ in range(NUM_LOCKS)]
@@ -82,6 +85,7 @@ class Storage:
             # 3. Actualizar el almacén en memoria
             self._data[key] = value
             self._total_requests += 1
+        self._set_count += 1
         return True
 
     def get(self, key):
@@ -91,6 +95,7 @@ class Storage:
         lock = self._get_lock(key)
         with lock:
             self._total_requests += 1
+            self._get_count += 1
             return self._data.get(key)
 
     def get_prefix(self, prefix):
@@ -124,6 +129,7 @@ class Storage:
                     # Comprobamos si la clave todavía existe y coincide antes de añadirla
                     if k in self._data and k.startswith(prefix):
                         results.append({'key': k, 'value': self._data[k]})
+        self._getprefix_count += 1
         return results
 
     def get_stats(self):
@@ -133,7 +139,10 @@ class Storage:
         return {
             'key_count': len(self._data),
             'start_time': self._start_time,
-            'total_requests': self._total_requests
+            'total_requests': self._total_requests,
+            'set_count': self._set_count,
+            'get_count': self._get_count,
+            'getprefix_count': self._getprefix_count
         }
 
     def close(self):
