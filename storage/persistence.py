@@ -26,7 +26,7 @@ class Storage:
         self._data = {}
         self._wal_filename = wal_filename
         self._wal_file = None
-        self._start_time = time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())
+        self._start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
         self._total_requests = 0
         self._set_count = 0
         self._get_count = 0
