@@ -1,30 +1,19 @@
-# test_script.py
-"""
-Script para la ejecución automática de pruebas de rendimiento y validación.
-Genera gráficos y archivos CSV con los resultados.
-"""
-
 import argparse
 import csv
 import os
 import random
 import signal
-import string
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
 import grpc
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
 from proto import keyvalue_pb2, keyvalue_pb2_grpc
 
 RESULTS_DIR = "resultados"
 SERVER_LOG_FILE = "wal.log"
-
-# --- Funciones de Ayuda ---
 
 def start_server(port):
     """Inicia el proceso del servidor y devuelve el objeto del proceso."""
@@ -48,9 +37,9 @@ def stop_server(process, graceful=True):
     print("Deteniendo servidor...")
     if graceful:
         if os.name == 'nt':
-            process.terminate()  # Windows: termina el proceso de forma "graceful"
+            process.terminate()  
         else:
-            process.send_signal(signal.SIGINT)  # Unix: Ctrl+C
+            process.send_signal(signal.SIGINT)  
     else:
         process.kill()  # Simula un fallo abrupto
     
@@ -83,8 +72,6 @@ def cleanup_logs():
 def generate_random_value(size_in_bytes):
     """Genera un valor aleatorio del tamaño especificado."""
     return os.urandom(size_in_bytes)
-
-# --- Funciones de Prueba ---
 
 def client_worker(client_id, port, workload_type, value_size, duration_sec):
     """
@@ -161,7 +148,6 @@ def run_latency_vs_size_test(port):
             
             latencies, _ = client_worker(0, port, w_type, size, duration_sec=10)
             
-            # Forzar al menos 1 GetPrefix
             grpc_options = [
                 ('grpc.max_send_message_length', 256 * 1024 * 1024),
                 ('grpc.max_receive_message_length', 256 * 1024 * 1024),
@@ -186,7 +172,7 @@ def run_latency_vs_size_test(port):
         writer.writerows(results)
     print(f"Resultados guardados en {csv_path}")
     
-    # Graficar Latencia vs Tamaño de Valor
+    # Grafica de Latencia vs Tamaño de Valor
     df = pd.read_csv(csv_path)
 
     for workload in df['workload'].unique():
@@ -246,7 +232,7 @@ def run_scalability_test(port):
         writer.writerows(results)
     print(f"Resultados guardados en {csv_path}")
 
-    # Generar gráfico
+    # Generar gráfica
     data = np.array(results)
     fig, ax1 = plt.subplots()
 
@@ -275,7 +261,7 @@ def run_durability_and_restart_test(port):
     Prueba 3: Valida la durabilidad y mide el tiempo de reinicio.
     """
     print("\n--- EJECUTANDO PRUEBA: DURABILIDAD Y TIEMPO DE REINICIO ---\n")
-    num_keys_to_write = 10000 # Reducido de 10M para una prueba rápida. Cambiar a 10_000_000 para la prueba completa.
+    num_keys_to_write = 10000 
     
     # --- Fase 1: Pre-llenado y fallo ---
     print(f"  Fase 1: Escribiendo {num_keys_to_write} claves y simulando un fallo...\n")

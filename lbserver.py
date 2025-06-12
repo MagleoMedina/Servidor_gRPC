@@ -1,8 +1,3 @@
-# lbserver.py
-"""
-Servidor gRPC para el almacén clave-valor.
-Implementa los métodos RPC definidos en keyvalue.proto.
-"""
 import argparse
 import time
 from concurrent import futures
@@ -33,7 +28,7 @@ class KeyValueServicer(keyvalue_pb2_grpc.KeyValueServicer):
 
     def GetPrefix(self, request, context):
         """Maneja las peticiones GetPrefix."""
-        # Leer el nuevo campo max_results (si no viene, usar 50 como default)
+        
         max_results = request.max_results if request.max_results > 0 else 50
         max_results = min(max_results, 50)  # Nunca permitir más de 50 pase lo que pase
 

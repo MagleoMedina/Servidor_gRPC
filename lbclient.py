@@ -1,7 +1,3 @@
-# lbclient.py
-"""
-Cliente de línea de comandos para interactuar con el servidor gRPC.
-"""
 import argparse
 import grpc
 from proto import keyvalue_pb2, keyvalue_pb2_grpc
@@ -9,7 +5,6 @@ from proto import keyvalue_pb2, keyvalue_pb2_grpc
 def run_command(args):
     """Ejecuta un comando en el servidor."""
     address = f'localhost:{args.port}'
-    # Set max message size to 32MB for both send and receive
     max_msg_len = 256 * 1024 * 1024
     with grpc.insecure_channel(
         address,

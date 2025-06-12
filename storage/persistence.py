@@ -1,14 +1,7 @@
-# storage/persistence.py
-"""
-Capa de persistencia, durabilidad y concurrencia.
-Gestiona el almacenamiento en memoria, el Write-Ahead Log (WAL) y los bloqueos.
-"""
-
 import os
 import pickle
 import threading
 import time
-from collections import defaultdict
 
 # Número de bloqueos para el sistema de "striped locking".
 # Un número mayor reduce la contención pero consume más memoria.
@@ -17,7 +10,7 @@ NUM_LOCKS = 256
 
 class Storage:
     """
-    Gestiona el almacenamiento de datos clave-valor.
+    - Gestiona el almacenamiento de datos clave-valor.
     - Almacén en memoria (dict) para lecturas rápidas.
     - Write-Ahead Log (WAL) para durabilidad.
     - Bloqueos por bandas (Striped Locks) para concurrencia.
@@ -101,10 +94,6 @@ class Storage:
     def get_prefix(self, prefix, max_results=50):  # Límite controlado para estabilidad
         """
         Obtiene todos los pares cuyo clave comienza con el prefijo dado.
-        
-        NOTA: Esta operación puede ser lenta en almacenes muy grandes.
-        Bloquea todos los locks brevemente para obtener una copia de las claves
-        y evitar inconsistencias mientras se itera.
         """
         # Para evitar un deadlock, los locks deben adquirirse siempre en el mismo orden.
         for lock in self._locks:

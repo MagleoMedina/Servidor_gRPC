@@ -20,7 +20,7 @@ all: setup proto
 # Instala las dependencias de Python
 setup:
 	$(PIP) install --upgrade pip
-	$(PIP) install grpcio grpcio-tools protobuf matplotlib numpy
+	$(PIP) install grpcio grpcio-tools protobuf matplotlib numpy pandas
 
 # Genera el código gRPC a partir del archivo .proto
 proto:
