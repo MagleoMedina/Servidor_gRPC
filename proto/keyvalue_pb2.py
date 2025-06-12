@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ekeyvalue.proto\x12\x08keyvalue\"(\n\nSetRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c\"\x1e\n\x0bSetResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x19\n\nGetRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\"+\n\x0bGetResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\r\n\x05value\x18\x02 \x01(\x0c\"\"\n\x10GetPrefixRequest\x12\x0e\n\x06prefix\x18\x01 \x01(\t\"*\n\x0cKeyValuePair\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c\":\n\x11GetPrefixResponse\x12%\n\x05pairs\x18\x01 \x03(\x0b\x32\x16.keyvalue.KeyValuePair\"\r\n\x0bStatRequest\"\x93\x01\n\x0cStatResponse\x12\x11\n\tkey_count\x18\x01 \x01(\x03\x12\x19\n\x11server_start_time\x18\x02 \x01(\t\x12\x16\n\x0etotal_requests\x18\x03 \x01(\x03\x12\x11\n\tset_count\x18\x04 \x01(\x03\x12\x11\n\tget_count\x18\x05 \x01(\x03\x12\x17\n\x0fgetprefix_count\x18\x06 \x01(\x03\x32\xf7\x01\n\x08KeyValue\x12\x34\n\x03Set\x12\x14.keyvalue.SetRequest\x1a\x15.keyvalue.SetResponse\"\x00\x12\x34\n\x03Get\x12\x14.keyvalue.GetRequest\x1a\x15.keyvalue.GetResponse\"\x00\x12\x46\n\tGetPrefix\x12\x1a.keyvalue.GetPrefixRequest\x1a\x1b.keyvalue.GetPrefixResponse\"\x00\x12\x37\n\x04Stat\x12\x15.keyvalue.StatRequest\x1a\x16.keyvalue.StatResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ekeyvalue.proto\x12\x08keyvalue\"(\n\nSetRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c\"\x1e\n\x0bSetResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x19\n\nGetRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\"+\n\x0bGetResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\r\n\x05value\x18\x02 \x01(\x0c\"7\n\x10GetPrefixRequest\x12\x0e\n\x06prefix\x18\x01 \x01(\t\x12\x13\n\x0bmax_results\x18\x02 \x01(\x03\"*\n\x0cKeyValuePair\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c\":\n\x11GetPrefixResponse\x12%\n\x05pairs\x18\x01 \x03(\x0b\x32\x16.keyvalue.KeyValuePair\"\r\n\x0bStatRequest\"\x93\x01\n\x0cStatResponse\x12\x11\n\tkey_count\x18\x01 \x01(\x03\x12\x19\n\x11server_start_time\x18\x02 \x01(\t\x12\x16\n\x0etotal_requests\x18\x03 \x01(\x03\x12\x11\n\tset_count\x18\x04 \x01(\x03\x12\x11\n\tget_count\x18\x05 \x01(\x03\x12\x17\n\x0fgetprefix_count\x18\x06 \x01(\x03\x32\xf7\x01\n\x08KeyValue\x12\x34\n\x03Set\x12\x14.keyvalue.SetRequest\x1a\x15.keyvalue.SetResponse\"\x00\x12\x34\n\x03Get\x12\x14.keyvalue.GetRequest\x1a\x15.keyvalue.GetResponse\"\x00\x12\x46\n\tGetPrefix\x12\x1a.keyvalue.GetPrefixRequest\x1a\x1b.keyvalue.GetPrefixResponse\"\x00\x12\x37\n\x04Stat\x12\x15.keyvalue.StatRequest\x1a\x16.keyvalue.StatResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,15 +40,15 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETRESPONSE']._serialized_start=129
   _globals['_GETRESPONSE']._serialized_end=172
   _globals['_GETPREFIXREQUEST']._serialized_start=174
-  _globals['_GETPREFIXREQUEST']._serialized_end=208
-  _globals['_KEYVALUEPAIR']._serialized_start=210
-  _globals['_KEYVALUEPAIR']._serialized_end=252
-  _globals['_GETPREFIXRESPONSE']._serialized_start=254
-  _globals['_GETPREFIXRESPONSE']._serialized_end=312
-  _globals['_STATREQUEST']._serialized_start=314
-  _globals['_STATREQUEST']._serialized_end=327
-  _globals['_STATRESPONSE']._serialized_start=330
-  _globals['_STATRESPONSE']._serialized_end=477
-  _globals['_KEYVALUE']._serialized_start=480
-  _globals['_KEYVALUE']._serialized_end=727
+  _globals['_GETPREFIXREQUEST']._serialized_end=229
+  _globals['_KEYVALUEPAIR']._serialized_start=231
+  _globals['_KEYVALUEPAIR']._serialized_end=273
+  _globals['_GETPREFIXRESPONSE']._serialized_start=275
+  _globals['_GETPREFIXRESPONSE']._serialized_end=333
+  _globals['_STATREQUEST']._serialized_start=335
+  _globals['_STATREQUEST']._serialized_end=348
+  _globals['_STATRESPONSE']._serialized_start=351
+  _globals['_STATRESPONSE']._serialized_end=498
+  _globals['_KEYVALUE']._serialized_start=501
+  _globals['_KEYVALUE']._serialized_end=748
 # @@protoc_insertion_point(module_scope)

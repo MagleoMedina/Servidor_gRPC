@@ -98,8 +98,8 @@ def client_worker(client_id, port, workload_type, value_size, duration_sec):
 
     # Aumentar límites de tamaño de mensaje para gRPC
     grpc_options = [
-        ('grpc.max_send_message_length', 128 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 128 * 1024 * 1024),
+        ('grpc.max_send_message_length', 256* 1024 * 1024),
+        ('grpc.max_receive_message_length', 256 * 1024 * 1024),
     ]
 
     with grpc.insecure_channel(address, options=grpc_options) as channel:
@@ -124,7 +124,7 @@ def client_worker(client_id, port, workload_type, value_size, duration_sec):
                 else:
                     # Aquí integramos el GetPrefix
                     prefix = f"client{client_id}-key-"
-                    stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix=prefix))
+                    stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix=prefix, max_results=50))
 
             op_end_time = time.time()
             latencies.append((op_end_time - op_start_time) * 1000) # en ms
@@ -150,8 +150,8 @@ def run_latency_vs_size_test(port):
             # Pre-poblar datos para la prueba de lectura
             if w_type == 'read':
                 grpc_options = [
-                    ('grpc.max_send_message_length', 128 * 1024 * 1024),
-                    ('grpc.max_receive_message_length', 128 * 1024 * 1024),
+                    ('grpc.max_send_message_length', 256 * 1024 * 1024),
+                    ('grpc.max_receive_message_length', 256 * 1024 * 1024),
                 ]
                 with grpc.insecure_channel(f'localhost:{port}', options=grpc_options) as channel:
                     stub = keyvalue_pb2_grpc.KeyValueStub(channel)
@@ -160,6 +160,15 @@ def run_latency_vs_size_test(port):
                          stub.Set(keyvalue_pb2.SetRequest(key=f"client0-key-{i}", value=generate_random_value(size)))
             
             latencies, _ = client_worker(0, port, w_type, size, duration_sec=10)
+            
+            # Forzar al menos 1 GetPrefix
+            grpc_options = [
+                ('grpc.max_send_message_length', 256 * 1024 * 1024),
+                ('grpc.max_receive_message_length', 256 * 1024 * 1024),
+            ]
+            with grpc.insecure_channel(f'localhost:{port}', options=grpc_options) as channel:
+                stub = keyvalue_pb2_grpc.KeyValueStub(channel)
+                stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix="client0-key-", max_results=50))
             
             avg_latency = np.mean(latencies)
             p99_latency = np.percentile(latencies, 99)
@@ -275,8 +284,8 @@ def run_durability_and_restart_test(port):
 
     keys_written = set()
     with grpc.insecure_channel(f'localhost:{port}', options=[
-        ('grpc.max_send_message_length', 128 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 128 * 1024 * 1024),
+        ('grpc.max_send_message_length', 256 * 1024 * 1024),
+        ('grpc.max_receive_message_length', 256 * 1024 * 1024),
     ]) as channel:
         stub = keyvalue_pb2_grpc.KeyValueStub(channel)
         for i in range(num_keys_to_write):
@@ -300,8 +309,8 @@ def run_durability_and_restart_test(port):
 
     # Medir latencia "en frío" (justo después de reiniciar)
     with grpc.insecure_channel(f'localhost:{port}', options=[
-        ('grpc.max_send_message_length', 128 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 128 * 1024 * 1024),
+        ('grpc.max_send_message_length', 256 * 1024 * 1024),
+        ('grpc.max_receive_message_length', 256 * 1024 * 1024),
     ]) as channel:
         stub = keyvalue_pb2_grpc.KeyValueStub(channel)
         
@@ -334,6 +343,9 @@ def run_durability_and_restart_test(port):
 
         print(f"  Latencia de lectura 'en frío' (media): {np.mean(cold_latencies):.3f} ms")
         print(f"  Latencia de lectura 'en caliente' (media): {np.mean(hot_latencies):.3f} ms")
+        
+        # Ejecutar al menos un GetPrefix durante la validación:
+        stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix="durability-key-", max_results=50))
         
     # Graficar Frío vs Caliente
     labels = ['Frío', 'Caliente']

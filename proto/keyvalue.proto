@@ -41,6 +41,7 @@ message GetResponse {
 // Mensajes para el método GetPrefix
 message GetPrefixRequest {
   string prefix = 1;
+  int64 max_results = 2;
 }
 
 message KeyValuePair {

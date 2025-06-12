@@ -98,7 +98,7 @@ class Storage:
             self._get_count += 1
             return self._data.get(key)
 
-    def get_prefix(self, prefix):
+    def get_prefix(self, prefix, max_results=50):  # Límite controlado para estabilidad
         """
         Obtiene todos los pares cuyo clave comienza con el prefijo dado.
         
@@ -119,6 +119,7 @@ class Storage:
                 lock.release()
 
         self._total_requests += 1
+        self._getprefix_count += 1
         
         results = []
         for k in keys_snapshot:
@@ -129,7 +130,8 @@ class Storage:
                     # Comprobamos si la clave todavía existe y coincide antes de añadirla
                     if k in self._data and k.startswith(prefix):
                         results.append({'key': k, 'value': self._data[k]})
-        self._getprefix_count += 1
+                if len(results) >= max_results:
+                    break
         return results
 
     def get_stats(self):

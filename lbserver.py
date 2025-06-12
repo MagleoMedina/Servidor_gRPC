@@ -33,9 +33,18 @@ class KeyValueServicer(keyvalue_pb2_grpc.KeyValueServicer):
 
     def GetPrefix(self, request, context):
         """Maneja las peticiones GetPrefix."""
-        pairs = self.storage.get_prefix(request.prefix)
-        pb_pairs = [keyvalue_pb2.KeyValuePair(key=p['key'], value=p['value']) for p in pairs]
-        return keyvalue_pb2.GetPrefixResponse(pairs=pb_pairs)
+        # Leer el nuevo campo max_results (si no viene, usar 50 como default)
+        max_results = request.max_results if request.max_results > 0 else 50
+        max_results = min(max_results, 50)  # Nunca permitir más de 50 pase lo que pase
+
+        results = self.storage.get_prefix(request.prefix, max_results=max_results)
+
+        pairs = [
+            keyvalue_pb2.KeyValuePair(key=entry['key'], value=entry['value'])
+            for entry in results
+        ]
+
+        return keyvalue_pb2.GetPrefixResponse(pairs=pairs)
     
     def Stat(self, request, context):
         """Maneja las peticiones Stat."""
@@ -56,7 +65,7 @@ def serve(port):
     storage_instance = Storage()
     
     # Aumentar el tamaño máximo de mensaje a 32MB
-    max_msg_len = 128 * 1024 * 1024
+    max_msg_len = 256 * 1024 * 1024
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=32),
         options=[
