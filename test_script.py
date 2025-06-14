@@ -1,30 +1,19 @@
-# test_script.py
-"""
-Script para la ejecución automática de pruebas de rendimiento y validación.
-Genera gráficos y archivos CSV con los resultados.
-"""
-
 import argparse
 import csv
 import os
 import random
 import signal
-import string
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
 import grpc
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
 from proto import keyvalue_pb2, keyvalue_pb2_grpc
 
 RESULTS_DIR = "resultados"
 SERVER_LOG_FILE = "wal.log"
-
-# --- Funciones de Ayuda ---
 
 def start_server(port):
     """Inicia el proceso del servidor y devuelve el objeto del proceso."""
@@ -40,7 +29,7 @@ def start_server(port):
         # El proceso ha terminado, lo que indica un error
         stdout, stderr = process.communicate()
         raise RuntimeError(f"Fallo al iniciar el servidor:\nSTDOUT: {stdout.decode()}\nSTDERR: {stderr.decode()}")
-    print("Servidor iniciado.")
+    print("Servidor iniciado.\n")
     return process
 
 def stop_server(process, graceful=True):
@@ -48,9 +37,9 @@ def stop_server(process, graceful=True):
     print("Deteniendo servidor...")
     if graceful:
         if os.name == 'nt':
-            process.terminate()  # Windows: termina el proceso de forma "graceful"
+            process.terminate()  
         else:
-            process.send_signal(signal.SIGINT)  # Unix: Ctrl+C
+            process.send_signal(signal.SIGINT)  
     else:
         process.kill()  # Simula un fallo abrupto
     
@@ -60,7 +49,7 @@ def stop_server(process, graceful=True):
         print("El servidor no se detuvo a tiempo, forzando cierre.")
         process.kill()
 
-    print("Servidor detenido.")
+    print("Servidor detenido.\n")
     
 def print_server_stats(port):
     with grpc.insecure_channel(f'localhost:{port}') as channel:
@@ -73,7 +62,7 @@ def print_server_stats(port):
         print(f"Total sets: {response.set_count}")
         print(f"Total gets: {response.get_count}")
         print(f"Total getPrefix: {response.getprefix_count}")
-        print("------------------------------")
+        print("------------------------------\n")
 
 def cleanup_logs():
     """Elimina el archivo de log del servidor."""
@@ -83,8 +72,6 @@ def cleanup_logs():
 def generate_random_value(size_in_bytes):
     """Genera un valor aleatorio del tamaño especificado."""
     return os.urandom(size_in_bytes)
-
-# --- Funciones de Prueba ---
 
 def client_worker(client_id, port, workload_type, value_size, duration_sec):
     """
@@ -98,8 +85,8 @@ def client_worker(client_id, port, workload_type, value_size, duration_sec):
 
     # Aumentar límites de tamaño de mensaje para gRPC
     grpc_options = [
-        ('grpc.max_send_message_length', 64 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 64 * 1024 * 1024),
+        ('grpc.max_send_message_length', 256* 1024 * 1024),
+        ('grpc.max_receive_message_length', 256 * 1024 * 1024),
     ]
 
     with grpc.insecure_channel(address, options=grpc_options) as channel:
@@ -115,11 +102,16 @@ def client_worker(client_id, port, workload_type, value_size, duration_sec):
                 value = generate_random_value(value_size)
                 stub.Set(keyvalue_pb2.SetRequest(key=key, value=value))
             elif workload_type == 'mixed':
-                if random.random() < 0.5:
+                op = random.random()
+                if op < 0.4:
                     stub.Get(keyvalue_pb2.GetRequest(key=key))
-                else:
+                elif op < 0.8:
                     value = generate_random_value(value_size)
                     stub.Set(keyvalue_pb2.SetRequest(key=key, value=value))
+                else:
+                    # Aquí integramos el GetPrefix
+                    prefix = f"client{client_id}-key-"
+                    stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix=prefix, max_results=50))
 
             op_end_time = time.time()
             latencies.append((op_end_time - op_start_time) * 1000) # en ms
@@ -131,13 +123,13 @@ def run_latency_vs_size_test(port):
     """
     Prueba 1: Mide la latencia en función del tamaño del valor.
     """
-    print("\n--- EJECUTANDO PRUEBA: LATENCIA vs TAMAÑO DE VALOR ---")
+    print("\n--- EJECUTANDO PRUEBA: LATENCIA vs TAMAÑO DE VALOR ---\n")
     value_sizes = [512, 4*1024, 512*1024, 1024*1024, 4*1024*1024] # 512B, 4KB, 512KB, 1MB, 4MB
     workloads = {'100% Lecturas': 'read', '50% Lecturas / 50% Escrituras': 'mixed'}
     results = []
 
     for name, w_type in workloads.items():
-        print(f"  Carga de trabajo: {name}")
+        print(f"  Carga de trabajo: {name}\n")
         for size in value_sizes:
             cleanup_logs()
             server_proc = start_server(port)
@@ -145,8 +137,8 @@ def run_latency_vs_size_test(port):
             # Pre-poblar datos para la prueba de lectura
             if w_type == 'read':
                 grpc_options = [
-                    ('grpc.max_send_message_length', 64 * 1024 * 1024),
-                    ('grpc.max_receive_message_length', 64 * 1024 * 1024),
+                    ('grpc.max_send_message_length', 256 * 1024 * 1024),
+                    ('grpc.max_receive_message_length', 256 * 1024 * 1024),
                 ]
                 with grpc.insecure_channel(f'localhost:{port}', options=grpc_options) as channel:
                     stub = keyvalue_pb2_grpc.KeyValueStub(channel)
@@ -155,6 +147,14 @@ def run_latency_vs_size_test(port):
                          stub.Set(keyvalue_pb2.SetRequest(key=f"client0-key-{i}", value=generate_random_value(size)))
             
             latencies, _ = client_worker(0, port, w_type, size, duration_sec=10)
+            
+            grpc_options = [
+                ('grpc.max_send_message_length', 256 * 1024 * 1024),
+                ('grpc.max_receive_message_length', 256 * 1024 * 1024),
+            ]
+            with grpc.insecure_channel(f'localhost:{port}', options=grpc_options) as channel:
+                stub = keyvalue_pb2_grpc.KeyValueStub(channel)
+                stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix="client0-key-", max_results=50))
             
             avg_latency = np.mean(latencies)
             p99_latency = np.percentile(latencies, 99)
@@ -172,7 +172,7 @@ def run_latency_vs_size_test(port):
         writer.writerows(results)
     print(f"Resultados guardados en {csv_path}")
     
-    # Graficar Latencia vs Tamaño de Valor
+    # Grafica de Latencia vs Tamaño de Valor
     df = pd.read_csv(csv_path)
 
     for workload in df['workload'].unique():
@@ -194,7 +194,7 @@ def run_scalability_test(port):
     """
     Prueba 2: Mide la escalabilidad con múltiples clientes.
     """
-    print("\n--- EJECUTANDO PRUEBA: ESCALABILIDAD (LATENCIA Y RENDIMIENTO) ---")
+    print("\n--- EJECUTANDO PRUEBA: ESCALABILIDAD (LATENCIA Y RENDIMIENTO) ---\n")
     client_counts = [1, 2, 4, 8, 16, 32]
     fixed_value_size = 1024 # 1KB
     test_duration = 15 # segundos
@@ -219,7 +219,7 @@ def run_scalability_test(port):
         avg_latency = np.mean(all_latencies) if all_latencies else 0
         throughput = total_ops / test_duration # ops/sec
 
-        print(f"    Clientes: {n_clients} -> Rendimiento: {throughput:.2f} ops/sec, Latencia media: {avg_latency:.2f} ms")
+        print(f"    Clientes: {n_clients} -> Rendimiento: {throughput:.2f} ops/sec, Latencia media: {avg_latency:.2f} ms\n")
         results.append([n_clients, throughput, avg_latency])
     print_server_stats(port)
     stop_server(server_proc)
@@ -232,7 +232,7 @@ def run_scalability_test(port):
         writer.writerows(results)
     print(f"Resultados guardados en {csv_path}")
 
-    # Generar gráfico
+    # Generar gráfica
     data = np.array(results)
     fig, ax1 = plt.subplots()
 
@@ -247,9 +247,9 @@ def run_scalability_test(port):
     ax2.set_ylabel('Latencia Promedio (ms)', color=color)
     ax2.plot(data[:,0], data[:,2], 's--', color=color)
     ax2.tick_params(axis='y', labelcolor=color)
-
-    fig.tight_layout()
+    
     plt.title('Rendimiento y Latencia vs. Clientes Concurrentes')
+    fig.tight_layout()
     plot_path = os.path.join(RESULTS_DIR, 'grafico_escalabilidad.png')
     plt.savefig(plot_path)
     print(f"Gráfico guardado en {plot_path}")
@@ -260,18 +260,18 @@ def run_durability_and_restart_test(port):
     """
     Prueba 3: Valida la durabilidad y mide el tiempo de reinicio.
     """
-    print("\n--- EJECUTANDO PRUEBA: DURABILIDAD Y TIEMPO DE REINICIO ---")
-    num_keys_to_write = 10000 # Reducido de 10M para una prueba rápida. Cambiar a 10_000_000 para la prueba completa.
+    print("\n--- EJECUTANDO PRUEBA: DURABILIDAD Y TIEMPO DE REINICIO ---\n")
+    num_keys_to_write = 10000 
     
     # --- Fase 1: Pre-llenado y fallo ---
-    print(f"  Fase 1: Escribiendo {num_keys_to_write} claves y simulando un fallo...")
+    print(f"  Fase 1: Escribiendo {num_keys_to_write} claves y simulando un fallo...\n")
     cleanup_logs()
     server_proc = start_server(port)
 
     keys_written = set()
     with grpc.insecure_channel(f'localhost:{port}', options=[
-        ('grpc.max_send_message_length', 64 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 64 * 1024 * 1024),
+        ('grpc.max_send_message_length', 256 * 1024 * 1024),
+        ('grpc.max_receive_message_length', 256 * 1024 * 1024),
     ]) as channel:
         stub = keyvalue_pb2_grpc.KeyValueStub(channel)
         for i in range(num_keys_to_write):
@@ -287,7 +287,7 @@ def run_durability_and_restart_test(port):
     stop_server(server_proc, graceful=False)
 
     # --- Fase 2: Recuperación y validación ---
-    print("\n  Fase 2: Reiniciando servidor y validando datos...")
+    print("\n  Fase 2: Reiniciando servidor y validando datos...\n")
     start_time = time.time()
     server_proc = start_server(port)
     recovery_time = time.time() - start_time
@@ -295,8 +295,8 @@ def run_durability_and_restart_test(port):
 
     # Medir latencia "en frío" (justo después de reiniciar)
     with grpc.insecure_channel(f'localhost:{port}', options=[
-        ('grpc.max_send_message_length', 64 * 1024 * 1024),
-        ('grpc.max_receive_message_length', 64 * 1024 * 1024),
+        ('grpc.max_send_message_length', 256 * 1024 * 1024),
+        ('grpc.max_receive_message_length', 256 * 1024 * 1024),
     ]) as channel:
         stub = keyvalue_pb2_grpc.KeyValueStub(channel)
         
@@ -310,9 +310,9 @@ def run_durability_and_restart_test(port):
                 lost_keys += 1
         
         if lost_keys == 0:
-            print("VALIDACIÓN DE DURABILIDAD: CORRECTO, no se perdieron datos.")
+            print(" VALIDACIÓN DE DURABILIDAD: CORRECTO, no se perdieron datos.\n")
         else:
-            print(f"VALIDACIÓN DE DURABILIDAD: FALLO, se perdieron {lost_keys} de 100 claves de muestra.")
+            print(f" VALIDACIÓN DE DURABILIDAD: FALLO, se perdieron {lost_keys} de 100 claves de muestra.\n")
 
         # Latencia en frío vs caliente
         cold_latencies = []
@@ -329,6 +329,9 @@ def run_durability_and_restart_test(port):
 
         print(f"  Latencia de lectura 'en frío' (media): {np.mean(cold_latencies):.3f} ms")
         print(f"  Latencia de lectura 'en caliente' (media): {np.mean(hot_latencies):.3f} ms")
+        
+        # Ejecutar al menos un GetPrefix durante la validación:
+        stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix="durability-key-", max_results=50))
         
     # Graficar Frío vs Caliente
     labels = ['Frío', 'Caliente']

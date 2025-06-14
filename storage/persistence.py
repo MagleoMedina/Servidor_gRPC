@@ -1,14 +1,7 @@
-# storage/persistence.py
-"""
-Capa de persistencia, durabilidad y concurrencia.
-Gestiona el almacenamiento en memoria, el Write-Ahead Log (WAL) y los bloqueos.
-"""
-
 import os
 import pickle
 import threading
 import time
-from collections import defaultdict
 
 # Número de bloqueos para el sistema de "striped locking".
 # Un número mayor reduce la contención pero consume más memoria.
@@ -17,7 +10,7 @@ NUM_LOCKS = 256
 
 class Storage:
     """
-    Gestiona el almacenamiento de datos clave-valor.
+    - Gestiona el almacenamiento de datos clave-valor.
     - Almacén en memoria (dict) para lecturas rápidas.
     - Write-Ahead Log (WAL) para durabilidad.
     - Bloqueos por bandas (Striped Locks) para concurrencia.
@@ -26,7 +19,7 @@ class Storage:
         self._data = {}
         self._wal_filename = wal_filename
         self._wal_file = None
-        self._start_time = time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())
+        self._start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
         self._total_requests = 0
         self._set_count = 0
         self._get_count = 0
@@ -98,13 +91,9 @@ class Storage:
             self._get_count += 1
             return self._data.get(key)
 
-    def get_prefix(self, prefix):
+    def get_prefix(self, prefix, max_results=50):  # Límite controlado para estabilidad
         """
         Obtiene todos los pares cuyo clave comienza con el prefijo dado.
-        
-        NOTA: Esta operación puede ser lenta en almacenes muy grandes.
-        Bloquea todos los locks brevemente para obtener una copia de las claves
-        y evitar inconsistencias mientras se itera.
         """
         # Para evitar un deadlock, los locks deben adquirirse siempre en el mismo orden.
         for lock in self._locks:
@@ -119,6 +108,7 @@ class Storage:
                 lock.release()
 
         self._total_requests += 1
+        self._getprefix_count += 1
         
         results = []
         for k in keys_snapshot:
@@ -129,7 +119,8 @@ class Storage:
                     # Comprobamos si la clave todavía existe y coincide antes de añadirla
                     if k in self._data and k.startswith(prefix):
                         results.append({'key': k, 'value': self._data[k]})
-        self._getprefix_count += 1
+                if len(results) >= max_results:
+                    break
         return results
 
     def get_stats(self):

@@ -1,7 +1,3 @@
-# lbclient.py
-"""
-Cliente de línea de comandos para interactuar con el servidor gRPC.
-"""
 import argparse
 import grpc
 from proto import keyvalue_pb2, keyvalue_pb2_grpc
@@ -9,8 +5,7 @@ from proto import keyvalue_pb2, keyvalue_pb2_grpc
 def run_command(args):
     """Ejecuta un comando en el servidor."""
     address = f'localhost:{args.port}'
-    # Set max message size to 32MB for both send and receive
-    max_msg_len = 32 * 1024 * 1024
+    max_msg_len = 256 * 1024 * 1024
     with grpc.insecure_channel(
         address,
         options=[
@@ -35,7 +30,7 @@ def run_command(args):
                 print("Clave no encontrada.")
 
         elif args.command == 'getPrefix':
-            response = stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix=args.prefix))
+            response = stub.GetPrefix(keyvalue_pb2.GetPrefixRequest(prefix=args.prefix, max_results=50))
             if not response.pairs:
                 print("No se encontraron claves con ese prefijo.")
             else:
@@ -75,4 +70,3 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     run_command(args)
-
